@@ -1,5 +1,5 @@
 #include "Utils.h"
-//#include "soil2.h"
+#include "soil2.h"
 
 #include <iostream>
 #include <fstream>
@@ -148,43 +148,68 @@ GLuint Utils::createShaderProgram(const char *vp, const char *tCS, const char* t
 	return vtgfprogram;
 }
 
-GLuint Utils::loadCubeMap(const char *mapDir) {
-	//GLuint textureRef;
-	//string xp = mapDir; xp = xp + "/xp.jpg";
-	//string xn = mapDir; xn = xn + "/xn.jpg";
-	//string yp = mapDir; yp = yp + "/yp.jpg";
-	//string yn = mapDir; yn = yn + "/yn.jpg";
-	//string zp = mapDir; zp = zp + "/zp.jpg";
-	//string zn = mapDir; zn = zn + "/zn.jpg";
-	//textureRef = SOIL_load_OGL_cubemap(xp.c_str(), xn.c_str(), yp.c_str(), yn.c_str(), zp.c_str(), zn.c_str(),
-	//	SOIL_LOAD_AUTO, SOIL_CREATE_NEW_ID, SOIL_FLAG_MIPMAPS);
-	//if (textureRef == 0) cout << "didnt find cube map image file" << endl;
-	////	glBindTexture(GL_TEXTURE_CUBE_MAP, textureRef);
-	//// reduce seams
-	////	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-	////	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-	////	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
-	//return textureRef;
-	return 0;
+GLuint Utils::loadCubeMap(const string mapDir) {
+	GLuint textureRef;
+	string xp = mapDir + "right.jpg";
+	string xn = mapDir + "left.jpg";
+	string yp = mapDir + "top.jpg";
+	string yn = mapDir + "bottom.jpg";
+	string zp = mapDir + "front.jpg";
+	string zn = mapDir + "left.jpg";
+	textureRef = SOIL_load_OGL_cubemap(xp.c_str(), xn.c_str(), yp.c_str(), yn.c_str(), zp.c_str(), zn.c_str(),
+		SOIL_LOAD_AUTO, SOIL_CREATE_NEW_ID, SOIL_FLAG_MIPMAPS);
+	if (textureRef == 0) cout << "didnt find cube map image file" << endl;
+	return textureRef;
+}
+
+unsigned int loadCubeMap(vector<string> faces)
+{
+	unsigned int textureID;
+	glGenTextures(1, &textureID);
+	glBindTexture(GL_TEXTURE_CUBE_MAP, textureID);
+
+	int width, height, nrChannels;
+	for (unsigned int i = 0; i < faces.size(); i++)
+	{
+		unsigned char *data = SOIL_load_image(faces[i].c_str(), &width, &height, &nrChannels, 0);
+		if (data)
+		{
+			glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i,
+				0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data
+			);
+			SOIL_free_image_data(data);
+		}
+		else
+		{
+			std::cout << "Cubemap texture failed to load at path: " << faces[i] << std::endl;
+			SOIL_free_image_data(data);
+		}
+	}
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+
+	return textureID;
 }
 
 GLuint Utils::loadTexture(const char *texImagePath)
 {
-	//GLuint textureRef;
-	//textureRef = SOIL_load_OGL_texture(texImagePath, SOIL_LOAD_AUTO, SOIL_CREATE_NEW_ID, SOIL_FLAG_INVERT_Y);
-	//if (textureRef == 0) cout << "didnt find texture file " << texImagePath << endl;
-	//// ----- mipmap/anisotropic section
-	//glBindTexture(GL_TEXTURE_2D, textureRef);
-	//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-	//glGenerateMipmap(GL_TEXTURE_2D);
-	//if (glewIsSupported("GL_EXT_texture_filter_anisotropic")) {
-	//	GLfloat anisoset = 0.0f;
-	//	glGetFloatv(GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &anisoset);
-	//	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, anisoset);
-	//}
-	//// ----- end of mipmap/anisotropic section
-	//return textureRef;
-	return 0;
+	GLuint textureRef;
+	textureRef = SOIL_load_OGL_texture(texImagePath, SOIL_LOAD_AUTO, SOIL_CREATE_NEW_ID, SOIL_FLAG_INVERT_Y);
+	if (textureRef == 0) cout << "didnt find texture file " << texImagePath << endl;
+	// ----- mipmap/anisotropic section
+	glBindTexture(GL_TEXTURE_2D, textureRef);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+	glGenerateMipmap(GL_TEXTURE_2D);
+	if (glewIsSupported("GL_EXT_texture_filter_anisotropic")) {
+		GLfloat anisoset = 0.0f;
+		glGetFloatv(GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &anisoset);
+		glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, anisoset);
+	}
+	// ----- end of mipmap/anisotropic section
+	return textureRef;
 }
 
 // GOLD material - ambient, diffuse, specular, and shininess

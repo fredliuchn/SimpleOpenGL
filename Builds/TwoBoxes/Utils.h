@@ -2,6 +2,7 @@
 
 #include <GL/glew.h>
 #include <string>
+#include <vector>
 
 using namespace std;
 
@@ -21,7 +22,8 @@ public:
 	static GLuint createShaderProgram(const char *vp, const char *tCS, const char* tES, const char *fp);
 	static GLuint createShaderProgram(const char *vp, const char *tCS, const char* tES, char *gp, const char *fp);
 	static GLuint loadTexture(const char *texImagePath);
-	static GLuint loadCubeMap(const char *mapDir);
+	static GLuint loadCubeMap(const string mapDir);
+	static GLuint loadCubeMap(vector<string> faces);
 
 	static float* goldAmbient();
 	static float* goldDiffuse();

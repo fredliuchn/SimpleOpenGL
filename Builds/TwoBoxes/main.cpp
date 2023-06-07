@@ -383,7 +383,7 @@ void init(GLFWwindow* window) {
 	aspect = (float)width / (float)height;
 	pMat = glm::perspective(1.0472f, aspect, 0.1f, 1000.0f);
 
-	//skyboxTexture = Utils::loadTexture("F:/备份/OpenGL/9-1/alien.jpg");
+	skyboxTexture = Utils::loadCubeMap(workpath+"..\\Resources\\skybox\\");
 
 	setupVertices();
 	setupShadowBuffers(window);
@@ -414,7 +414,6 @@ void passone()
 	glClear(GL_DEPTH_BUFFER_BIT);
 	glEnable(GL_CULL_FACE);
 	glFrontFace(GL_CCW);
-	glEnable(GL_DEPTH_TEST);
 	glDepthFunc(GL_LEQUAL);
 
 	//glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vbo[2]);
@@ -434,7 +433,6 @@ void passone()
 
 	glEnable(GL_CULL_FACE);
 	glFrontFace(GL_CCW);
-	glEnable(GL_DEPTH_TEST);
 	glDepthFunc(GL_LEQUAL);
 
 	//glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vbo[2]);
@@ -453,9 +451,9 @@ void passtwo()
 	//大的
 
 	//对大正方形写入模板缓冲区
-	glStencilFunc(GL_ALWAYS, 1, 0xFF);
+	glClear(GL_STENCIL_BUFFER_BIT);
 	glStencilMask(0xFF);
-
+	glStencilFunc(GL_ALWAYS, 1, 0xFF);
 	thisAmb[0] = gMatAmb[0]; thisAmb[1] = gMatAmb[1]; thisAmb[2] = gMatAmb[2];  // gold
 	thisDif[0] = gMatDif[0]; thisDif[1] = gMatDif[1]; thisDif[2] = gMatDif[2];
 	thisSpe[0] = gMatSpe[0]; thisSpe[1] = gMatSpe[1]; thisSpe[2] = gMatSpe[2];
@@ -493,7 +491,6 @@ void passtwo()
 
 	glEnable(GL_CULL_FACE);
 	glFrontFace(GL_CCW);
-	glEnable(GL_DEPTH_TEST);
 	glDepthFunc(GL_LESS);
 
 	//glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vbo[2]);
@@ -509,7 +506,9 @@ void passtwo()
 	mvLoc = glGetUniformLocation(renderingProgram, "mv_matrix");
 	projLoc = glGetUniformLocation(renderingProgram, "proj_matrix");
 
+	mMat = glm::translate(glm::mat4(1.0f), glm::vec3(0.0, 0.0, 0.0));
 	mMat = glm::scale(mMat, glm::vec3(fscale, fscale, fscale));
+	mMat = glm::translate(mMat, glm::vec3(-0.05, -0.05, -0.05));
 	mvMat = vMat * mMat;
 	glUniformMatrix4fv(mvLoc, 1, GL_FALSE, glm::value_ptr(mvMat));
 	glUniformMatrix4fv(projLoc, 1, GL_FALSE, glm::value_ptr(pMat));
@@ -518,10 +517,8 @@ void passtwo()
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
 	glEnableVertexAttribArray(0);
 	glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
-	glStencilMask(0xFF);
-	glStencilFunc(GL_ALWAYS, 0, 0xFF);
 	glEnable(GL_DEPTH_TEST);
-
+	glStencilMask(0xFF);// 再次允许写入模板缓冲区 以便下次迭代时清除
 	//小的
 	glUseProgram(renderingProgram2);
 
@@ -530,8 +527,7 @@ void passtwo()
 	nLoc = glGetUniformLocation(renderingProgram2, "norm_matrix");
 	sLoc = glGetUniformLocation(renderingProgram2, "shadowMVP");
 
-	//小正方形不写入模板缓冲区
-	glStencilMask(0x00);
+	//小正方形
 
 	thisAmb[0] = bMatAmb[0]; thisAmb[1] = bMatAmb[1]; thisAmb[2] = bMatAmb[2];  // bronze
 	thisDif[0] = bMatDif[0]; thisDif[1] = bMatDif[1]; thisDif[2] = bMatDif[2];
@@ -569,10 +565,8 @@ void passtwo()
 	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, 0);
 	glEnableVertexAttribArray(1);
 
-	glClear(GL_DEPTH_BUFFER_BIT);
 	glEnable(GL_CULL_FACE);
 	glFrontFace(GL_CCW);
-	glEnable(GL_DEPTH_TEST);
 	glDepthFunc(GL_LESS);
 
 	//glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vbo[2]);
@@ -594,6 +588,8 @@ void display(GLFWwindow* window, double currentTime)
 
 	glDrawBuffer(GL_NONE);
 	glEnable(GL_DEPTH_TEST);
+	glEnable(GL_STENCIL_TEST);
+	glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
 	glEnable(GL_POLYGON_OFFSET_FILL);	// for reducing
 	glPolygonOffset(2.0f, 4.0f);		//  shadow artifacts
 	passone();
@@ -608,13 +604,7 @@ void display(GLFWwindow* window, double currentTime)
 	//重新开启绘制颜色
 	glDrawBuffer(GL_FRONT);
 
-	glClear(GL_STENCIL_BUFFER_BIT);
-	glEnable(GL_STENCIL_TEST);
-	glStencilFunc(GL_NOTEQUAL, 1, 0xFF);
-	glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
 	passtwo();
-	glDisable(GL_STENCIL_TEST);
-	glClear(GL_STENCIL_BUFFER_BIT);
 	Utils::checkOpenGLError();
 }
 
