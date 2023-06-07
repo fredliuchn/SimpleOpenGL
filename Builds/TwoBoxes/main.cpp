@@ -11,7 +11,7 @@
 using namespace std;
 
 #define numVAOs 1
-#define numVBOs 7
+#define numVBOs 8
 
 //相机位置
 glm::vec3 cameraPos = glm::vec3(3.0f, 6.0f, 17.0f);
@@ -22,12 +22,12 @@ glm::vec3 cameraUp = glm::vec3(0.0f, 1.0f, 0.0f);
 //相机左右方向
 glm::vec3 cameraAround = glm::vec3(1.0f, 0.0f, 0.0f);
 
-GLuint renderingProgram1, renderingProgram2, renderingProgram;
+GLuint renderingProgram1, renderingProgram2, RedProgram,SkyProgram;
 GLuint vao[numVAOs];
 GLuint vbo[numVBOs];
 
 GLuint brickTexture, skyboxTexture;
-GLuint mvLoc, projLoc, nLoc, sLoc;
+GLuint mvLoc, projLoc, nLoc, sLoc, vLoc;
 int width, height;
 float aspect;
 glm::mat4 pMat, vMat, mMat, mvMat, rMat, invTrMat;
@@ -207,6 +207,51 @@ void setupVertices(void) {
 		1.0,0.0,0.0
 	};
 
+	float skyboxVertices[] = {
+		// positions          
+		-1.0f,  1.0f, -1.0f,
+		-1.0f, -1.0f, -1.0f,
+		1.0f, -1.0f, -1.0f,
+		1.0f, -1.0f, -1.0f,
+		1.0f,  1.0f, -1.0f,
+		-1.0f,  1.0f, -1.0f,
+
+		-1.0f, -1.0f,  1.0f,
+		-1.0f, -1.0f, -1.0f,
+		-1.0f,  1.0f, -1.0f,
+		-1.0f,  1.0f, -1.0f,
+		-1.0f,  1.0f,  1.0f,
+		-1.0f, -1.0f,  1.0f,
+
+		1.0f, -1.0f, -1.0f,
+		1.0f, -1.0f,  1.0f,
+		1.0f,  1.0f,  1.0f,
+		1.0f,  1.0f,  1.0f,
+		1.0f,  1.0f, -1.0f,
+		1.0f, -1.0f, -1.0f,
+
+		-1.0f, -1.0f,  1.0f,
+		-1.0f,  1.0f,  1.0f,
+		1.0f,  1.0f,  1.0f,
+		1.0f,  1.0f,  1.0f,
+		1.0f, -1.0f,  1.0f,
+		-1.0f, -1.0f,  1.0f,
+
+		-1.0f,  1.0f, -1.0f,
+		1.0f,  1.0f, -1.0f,
+		1.0f,  1.0f,  1.0f,
+		1.0f,  1.0f,  1.0f,
+		-1.0f,  1.0f,  1.0f,
+		-1.0f,  1.0f, -1.0f,
+
+		-1.0f, -1.0f, -1.0f,
+		-1.0f, -1.0f,  1.0f,
+		1.0f, -1.0f, -1.0f,
+		1.0f, -1.0f, -1.0f,
+		-1.0f, -1.0f,  1.0f,
+		1.0f, -1.0f,  1.0f
+	};
+
 	float textureCoord[72] =
 	{
 		0.0,0.0,1.0,0.0,1.0,1.0,
@@ -304,6 +349,9 @@ void setupVertices(void) {
 
 	glBindBuffer(GL_ARRAY_BUFFER, vbo[6]);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(cubeTextureCoord) * 4, cubeTextureCoord, GL_STATIC_DRAW);
+
+	glBindBuffer(GL_ARRAY_BUFFER, vbo[7]);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(skyboxVertices) * 4, skyboxVertices, GL_STATIC_DRAW);
 }
 
 void installLights(GLuint program, glm::mat4 vMatrix)
@@ -373,8 +421,8 @@ void init(GLFWwindow* window) {
 	int pos = strPath.find_last_of('\\', strPath.length());
 	string workpath = strPath.substr(0, pos);
 
-	//renderingProgram = Utils::createShaderProgram(workpath + "/shader/vertShader.glsl", workpath + "/shader/fragShader.glsl");
-	renderingProgram = Utils::createShaderProgram(workpath + "\\shader\\vRedColor.glsl", workpath + "\\shader\\fRedColor.glsl");
+	SkyProgram = Utils::createShaderProgram(workpath + "\\shader\\vSkyBox.glsl", workpath + "\\shader\\fSkyBox.glsl");
+	RedProgram = Utils::createShaderProgram(workpath + "\\shader\\vRedColor.glsl", workpath + "\\shader\\fRedColor.glsl");
 
 	renderingProgram1 = Utils::createShaderProgram(workpath + "\\shader\\vshadow1.glsl", workpath + "\\shader\\fshadow1.glsl");
 	renderingProgram2 = Utils::createShaderProgram(workpath + "\\shader\\vshadow2.glsl", workpath + "\\shader\\fshadow2.glsl");
@@ -383,7 +431,7 @@ void init(GLFWwindow* window) {
 	aspect = (float)width / (float)height;
 	pMat = glm::perspective(1.0472f, aspect, 0.1f, 1000.0f);
 
-	skyboxTexture = Utils::loadCubeMap(workpath+"..\\Resources\\skybox\\");
+	skyboxTexture = Utils::loadCubeMap(workpath+"\\..\\Resources\\skybox\\");
 
 	setupVertices();
 	setupShadowBuffers(window);
@@ -500,11 +548,11 @@ void passtwo()
 	glStencilFunc(GL_NOTEQUAL, 1, 0xFF);
 	glStencilMask(0x00);
 	glDisable(GL_DEPTH_TEST);
-	glUseProgram(renderingProgram);
+	glUseProgram(RedProgram);
 	float fscale = 1.1;
 
-	mvLoc = glGetUniformLocation(renderingProgram, "mv_matrix");
-	projLoc = glGetUniformLocation(renderingProgram, "proj_matrix");
+	mvLoc = glGetUniformLocation(RedProgram, "mv_matrix");
+	projLoc = glGetUniformLocation(RedProgram, "proj_matrix");
 
 	mMat = glm::translate(glm::mat4(1.0f), glm::vec3(0.0, 0.0, 0.0));
 	mMat = glm::scale(mMat, glm::vec3(fscale, fscale, fscale));
@@ -533,8 +581,6 @@ void passtwo()
 	thisDif[0] = bMatDif[0]; thisDif[1] = bMatDif[1]; thisDif[2] = bMatDif[2];
 	thisSpe[0] = bMatSpe[0]; thisSpe[1] = bMatSpe[1]; thisSpe[2] = bMatSpe[2];
 	thisShi = bMatShi;
-
-	vMat = glm::translate(glm::mat4(1.0f), -cameraPos);
 
 	mMat = glm::translate(glm::mat4(1.0f), glm::vec3(6.0, 0.0, 0.0));
 	//mMat = glm::translate(glm::mat4(1.0f), glm::vec3(2.0, 0.0, 0.0));
@@ -579,7 +625,36 @@ void display(GLFWwindow* window, double currentTime)
 	glClearColor(0.0, 0.0, 0.0, 1.0);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);//GL_COLOR_BUFFER_BIT，GL_DEPTH_BUFFER_BIT和GL_STENCIL_BUFFER_BIT
 
-													   //从光源视角初始化视觉矩阵以及透视矩阵，以便在第一轮使用
+	vMat = glm::translate(glm::mat4(1.0f), -cameraPos);
+
+	//显示天空盒
+	glUseProgram(SkyProgram);
+	vLoc = glGetUniformLocation(SkyProgram, "v_matrix");
+	projLoc = glGetUniformLocation(SkyProgram, "proj_matrix");
+
+	glUniformMatrix4fv(vLoc, 1, GL_FALSE, glm::value_ptr(vMat));
+	glUniformMatrix4fv(projLoc, 1, GL_FALSE, glm::value_ptr(pMat));
+
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_CUBE_MAP, skyboxTexture);
+
+	glBindBuffer(GL_ARRAY_BUFFER, vbo[7]);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+	glEnableVertexAttribArray(0);
+
+	glEnable(GL_CULL_FACE);
+	glFrontFace(GL_CCW);
+
+	//glDepthFunc(GL_LEQUAL);
+	//glDepthMask(GL_FALSE);
+	glDisable(GL_DEPTH_TEST);
+	glDrawArrays(GL_TRIANGLES, 0, 36);
+	//glDepthFunc(GL_LESS);
+	glEnable(GL_DEPTH_TEST);
+	//glDepthMask(GL_TRUE);
+
+
+	//从光源视角初始化视觉矩阵以及透视矩阵，以便在第一轮使用
 	lightVmatrix = glm::lookAt(currentLightPos, origin, up);
 	lightPmatrix = glm::perspective(1.0472f, aspect, 0.1f, 1000.0f);
 	//使用自定义帧缓冲区，将阴影纹理附着到其上
