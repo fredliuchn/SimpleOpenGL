@@ -8,6 +8,7 @@
 #include <windows.h>
 #include <iostream>
 
+#define  TEXATTCH
 using namespace std;
 
 #define numVAOs 1
@@ -63,8 +64,7 @@ float thisAmb[4], thisDif[4], thisSpe[4], matAmb[4], matDif[4], matSpe[4];
 float thisShi, matShi;
 
 //阴影相关变量
-int scSizeX, scSizeY;
-GLuint shadowTex, shadowBuffer;
+GLuint shadowTex, shadowRenderbuffer, shadowFrameBuffer;
 glm::mat4 lightVmatrix;
 glm::mat4 lightPmatrix;
 glm::mat4 shadowMVP1;
@@ -392,23 +392,37 @@ void installLights(GLuint program, glm::mat4 vMatrix)
 
 void setupShadowBuffers(GLFWwindow* window) {
 	glfwGetFramebufferSize(window, &width, &height);
-	scSizeX = width;
-	scSizeY = height;
 
-	glGenFramebuffers(1, &shadowBuffer);
-
+	glGenFramebuffers(1, &shadowFrameBuffer);
+	glBindFramebuffer(GL_FRAMEBUFFER, shadowFrameBuffer);
+#ifdef TEXATTCH
 	glGenTextures(1, &shadowTex);
 	glBindTexture(GL_TEXTURE_2D, shadowTex);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT32,
-		scSizeX, scSizeY, 0, GL_DEPTH_COMPONENT, GL_FLOAT, 0);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT32, width, height, 0, GL_DEPTH_COMPONENT, GL_FLOAT, 0);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_REF_TO_TEXTURE);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_FUNC, GL_LEQUAL);
-
-	// may reduce shadow border artifacts
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+
+	glFramebufferTexture(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, shadowTex, 0);
+#else
+	glGenTextures(1, &shadowTex);
+	glBindTexture(GL_TEXTURE_2D, shadowTex);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, shadowTex, 0);
+
+	glGenRenderbuffers(1, &shadowRenderbuffer);
+	glBindRenderbuffer(GL_RENDERBUFFER, shadowRenderbuffer);
+	glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT24, width, height);
+	glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, shadowRenderbuffer);
+#endif // TEXATTCH
+	if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+		cout << "ERROR::FRAMEBUFFER:: Framebuffer is not complete!" << endl;
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
 void init(GLFWwindow* window) {
@@ -645,34 +659,32 @@ void display(GLFWwindow* window, double currentTime)
 	glEnable(GL_CULL_FACE);
 	glFrontFace(GL_CCW);
 
-	//glDepthFunc(GL_LEQUAL);
+	glDepthFunc(GL_LEQUAL);
 	//glDepthMask(GL_FALSE);
-	glDisable(GL_DEPTH_TEST);
+	//glDisable(GL_DEPTH_TEST);
 	glDrawArrays(GL_TRIANGLES, 0, 36);
-	//glDepthFunc(GL_LESS);
-	glEnable(GL_DEPTH_TEST);
+	glDepthFunc(GL_LESS);
+	//glEnable(GL_DEPTH_TEST);
 	//glDepthMask(GL_TRUE);
-
 
 	//从光源视角初始化视觉矩阵以及透视矩阵，以便在第一轮使用
 	lightVmatrix = glm::lookAt(currentLightPos, origin, up);
 	lightPmatrix = glm::perspective(1.0472f, aspect, 0.1f, 1000.0f);
 	//使用自定义帧缓冲区，将阴影纹理附着到其上
-	glBindFramebuffer(GL_FRAMEBUFFER, shadowBuffer);
-	glFramebufferTexture(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, shadowTex, 0);
-
+	glBindFramebuffer(GL_FRAMEBUFFER, shadowFrameBuffer);
 	glDrawBuffer(GL_NONE);
 	glEnable(GL_DEPTH_TEST);
 	glEnable(GL_STENCIL_TEST);
 	glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
-	glEnable(GL_POLYGON_OFFSET_FILL);	// for reducing
-	glPolygonOffset(2.0f, 4.0f);		//  shadow artifacts
+
+	glEnable(GL_POLYGON_OFFSET_FILL);
+	glPolygonOffset(2.0f, 4.0f);
 	passone();
+	glDisable(GL_POLYGON_OFFSET_FILL);
 
+	if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+		cout << "ERROR::FRAMEBUFFER:: Framebuffer is not complete!" << endl;
 	//使用显示缓冲区，并重新开始绘制
-
-	glDisable(GL_POLYGON_OFFSET_FILL);	// artifact reduction, continued
-										//使用显示缓冲区，并重新开始绘制
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, shadowTex);
@@ -730,7 +742,8 @@ int main(void) {
 		glfwSwapBuffers(window);
 		glfwPollEvents();
 	}
-
+	glDeleteRenderbuffers(1, &shadowRenderbuffer);
+	glDeleteFramebuffers(1, &shadowFrameBuffer);
 	glfwDestroyWindow(window);
 	glfwTerminate();
 	exit(EXIT_SUCCESS);
