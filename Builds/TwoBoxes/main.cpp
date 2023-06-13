@@ -720,6 +720,11 @@ void processInput(GLFWwindow *window)
 		cameraPos -= glm::normalize(glm::cross(cameraFront, cameraAround)) * cameraSpeed;
 }
 
+void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
+{
+	cameraPos.z += yoffset;
+}
+
 int main(void) {
 	if (!glfwInit()) { exit(EXIT_FAILURE); }
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
@@ -730,6 +735,7 @@ int main(void) {
 	if (glewInit() != GLEW_OK) { exit(EXIT_FAILURE); }
 	glfwSwapInterval(1);
 	glfwSetWindowSizeCallback(window, window_size_callback);
+	glfwSetScrollCallback(window, scroll_callback);
 	init(window);
 
 	int nrAttributes;
