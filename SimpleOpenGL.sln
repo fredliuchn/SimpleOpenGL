@@ -7,6 +7,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "TwoBoxes", "Builds\TwoBoxes
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "SkeletalAnimation", "Builds\SkeletalAnimation\SkeletalAnimation.vcxproj", "{B25364DE-E5FB-4685-8CB9-289F2B6A7458}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "SimulateWaterAndFog", "SimulateWaterAndFog\SimulateWaterAndFog.vcxproj", "{BFC8CB9B-353E-46CF-982D-1931AD597388}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -31,6 +33,14 @@ Global
 		{B25364DE-E5FB-4685-8CB9-289F2B6A7458}.Release|x64.Build.0 = Release|x64
 		{B25364DE-E5FB-4685-8CB9-289F2B6A7458}.Release|x86.ActiveCfg = Release|Win32
 		{B25364DE-E5FB-4685-8CB9-289F2B6A7458}.Release|x86.Build.0 = Release|Win32
+		{BFC8CB9B-353E-46CF-982D-1931AD597388}.Debug|x64.ActiveCfg = Debug|x64
+		{BFC8CB9B-353E-46CF-982D-1931AD597388}.Debug|x64.Build.0 = Debug|x64
+		{BFC8CB9B-353E-46CF-982D-1931AD597388}.Debug|x86.ActiveCfg = Debug|Win32
+		{BFC8CB9B-353E-46CF-982D-1931AD597388}.Debug|x86.Build.0 = Debug|Win32
+		{BFC8CB9B-353E-46CF-982D-1931AD597388}.Release|x64.ActiveCfg = Release|x64
+		{BFC8CB9B-353E-46CF-982D-1931AD597388}.Release|x64.Build.0 = Release|x64
+		{BFC8CB9B-353E-46CF-982D-1931AD597388}.Release|x86.ActiveCfg = Release|Win32
+		{BFC8CB9B-353E-46CF-982D-1931AD597388}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

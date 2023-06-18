@@ -6,13 +6,14 @@
 #include <glm/gtc/matrix_transform.hpp>
 
 #include <windows.h>
+#include <time.h>
 
 #include "animator.h"
 #include "model_animation.h"
-float aspect;
-glm::mat4 pMat, vMat, mMat, mvMat, rMat, invTrMat;
 
-GLuint mvLoc, projLoc, nLoc, sLoc, vLoc, mLoc;
+glm::mat4 pMat, vMat, mMat;
+
+GLuint projLoc, vLoc, mLoc;
 
 GLuint renderingProgram;
 
@@ -44,7 +45,7 @@ void init(GLFWwindow* window)
 	renderingProgram = Utils::createShaderProgram(workpath + "\\shader\\vanim_model.glsl", workpath + "\\shader\\fanim_model.glsl");
 
 	glfwGetFramebufferSize(window, &width, &height);
-	aspect = (float)width / (float)height;
+	float aspect = (float)width / (float)height;
 	pMat = glm::perspective(1.0472f, aspect, 0.1f, 1000.0f);
 
 	// load models
@@ -55,9 +56,28 @@ void init(GLFWwindow* window)
 	animator = Animator(danceAnimation);
 }
 
+void CalFrequency()
+{
+
+	static int fps = 0;
+	static double lastTime = (double)clock()/ CLOCKS_PER_SEC;
+	static int frameCount = 0;
+	++frameCount;
+
+	double curTime = (double)clock()/ CLOCKS_PER_SEC;
+	if (curTime - lastTime > 1.0)
+	{
+		fps = frameCount;
+		frameCount = 0;
+		lastTime = curTime;
+		cout << fps << endl;
+	}
+}
+
 void display(GLFWwindow* window, double currentTime)
 {
 	float deltaTime = currentTime - lastFrame;
+	CalFrequency();
 	lastFrame = currentTime;
 	animator.UpdateAnimation(deltaTime);
 
@@ -87,18 +107,18 @@ void display(GLFWwindow* window, double currentTime)
 		glUniformMatrix4fv(uniform, 1, GL_FALSE, glm::value_ptr(transforms[i]));
 	}
 
-	glm::mat4 model = glm::mat4(1.0f);
-	model = glm::translate(model, glm::vec3(0.0f, -0.4f, 0.0f));
-	model = glm::scale(model, glm::vec3(0.5f, 0.5f, 0.5f));
+	mMat = glm::mat4(1.0f);
+	mMat = glm::translate(mMat, glm::vec3(0.0f, -0.4f, 0.0f));
+	mMat = glm::scale(mMat, glm::vec3(0.5f, 0.5f, 0.5f));
 
 	mLoc = glGetUniformLocation(renderingProgram, "model");
-	glUniformMatrix4fv(mLoc, 1, GL_FALSE, glm::value_ptr(model));
+	glUniformMatrix4fv(mLoc, 1, GL_FALSE, glm::value_ptr(mMat));
 	ourModel.Draw(renderingProgram);
 }
 
 void window_size_callback(GLFWwindow* win, int newWidth, int newHeight) 
 {
-	aspect = (float)newWidth / (float)newHeight;
+	float aspect = (float)newWidth / (float)newHeight;
 	glViewport(0, 0, newWidth, newHeight);
 	pMat = glm::perspective(1.0472f, aspect, 0.1f, 1000.0f);
 }

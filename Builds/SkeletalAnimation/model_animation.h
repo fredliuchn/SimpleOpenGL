@@ -1,5 +1,4 @@
-#ifndef MODEL_H
-#define MODEL_H
+#pragma once
 
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
@@ -17,8 +16,6 @@
 #include <iostream>
 #include <map>
 #include <vector>
-
-
 
 using namespace std;
 
@@ -275,7 +272,3 @@ private:
         return textures;
     }
 };
-
-
-
-#endif
