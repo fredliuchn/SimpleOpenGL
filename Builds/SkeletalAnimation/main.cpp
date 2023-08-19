@@ -5,11 +5,13 @@
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
-#include <windows.h>
+
 #include <time.h>
+
 
 #include "animator.h"
 #include "model_animation.h"
+#include <windows.h>
 
 glm::mat4 pMat, vMat, mMat;
 
@@ -32,13 +34,30 @@ float lastFrame;
 Model ourModel;
 Animator animator;
 
+string WCharToMByte(LPCWSTR lpcwszStr)
+{
+	string str;
+	DWORD dwMinSize = 0;
+	LPSTR lpszStr = NULL;
+	dwMinSize = WideCharToMultiByte(CP_OEMCP, NULL, lpcwszStr, -1, NULL, 0, NULL, FALSE);
+	if (0 == dwMinSize)
+	{
+		return "";
+	}
+	lpszStr = new char[dwMinSize];
+	WideCharToMultiByte(CP_OEMCP, NULL, lpcwszStr, -1, lpszStr, dwMinSize, NULL, FALSE);
+	str = lpszStr;
+	delete[] lpszStr;
+	return str;
+}
+
 void init(GLFWwindow* window) 
 {
-	char exeFullPath[MAX_PATH];
+	LPWSTR exeFullPath = new WCHAR[MAX_PATH];
 	string strPath = "";
 
 	GetModuleFileName(NULL, exeFullPath, MAX_PATH);
-	strPath = (string)exeFullPath;
+	strPath = WCharToMByte(exeFullPath);
 	int pos = strPath.find_last_of('\\', strPath.length());
 	string workpath = strPath.substr(0, pos);
 

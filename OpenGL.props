@@ -4,7 +4,7 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup>
     <OutDir>$(SolutionDir)BinD</OutDir>
-    <IntDir>$(SolutionDir)Temp\$(Configuration)\</IntDir>
+    <IntDir>$(SolutionDir)Temp\$(ProjectName)\$(Configuration)\</IntDir>
   </PropertyGroup>
   <ItemDefinitionGroup>
     <ClCompile>
@@ -13,8 +13,8 @@
       <PreprocessorDefinitions>GLEW_STATIC;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <Link>
-      <AdditionalLibraryDirectories>$(SolutionDir)Dependency\glew-2.2.0\lib\Release\Win32\;$(SolutionDir)Dependency\glfw-3.3.8.bin.WIN32\lib-vc2015;$(SolutionDir)Dependency\SOIL2\lib\;$(SolutionDir)Dependency\Assimp\lib\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>glew32s.lib;opengl32.lib;soil2-debug.lib;glfw3.lib;assimp-vc140-mt.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(SolutionDir)Dependency\glew-2.2.0\lib\Release\Win32\;F:\GitHub\SimpleOpenGL\Dependency\glfw-3.3.8.bin.WIN32\lib-vc2019;$(SolutionDir)Dependency\SOIL2\lib\;$(SolutionDir)Dependency\Assimp\lib\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>glew32s.lib;opengl32.lib;soil2-debug.lib;glfw3.lib;assimp-vc142-mtd.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup />

@@ -74,6 +74,23 @@ glm::mat4 b;
 glm::vec3 origin(0.0f, 0.0f, 0.0f);
 glm::vec3 up(0.0f, 1.0f, 0.0f);
 
+string WCharToMByte(LPCWSTR lpcwszStr)
+{
+	string str;
+	DWORD dwMinSize = 0;
+	LPSTR lpszStr = NULL;
+	dwMinSize = WideCharToMultiByte(CP_OEMCP, NULL, lpcwszStr, -1, NULL, 0, NULL, FALSE);
+	if (0 == dwMinSize)
+	{
+		return "";
+	}
+	lpszStr = new char[dwMinSize];
+	WideCharToMultiByte(CP_OEMCP, NULL, lpcwszStr, -1, lpszStr, dwMinSize, NULL, FALSE);
+	str = lpszStr;
+	delete[] lpszStr;
+	return str;
+}
+
 void setupVertices(void) {
 
 	float cubeVertexPositions[108] =
@@ -427,11 +444,11 @@ void setupShadowBuffers(GLFWwindow* window) {
 
 void init(GLFWwindow* window) {
 
-	char exeFullPath[MAX_PATH];
+	LPWSTR exeFullPath = new WCHAR[MAX_PATH];
 	string strPath = "";
 
 	GetModuleFileName(NULL, exeFullPath, MAX_PATH);
-	strPath = (string)exeFullPath;
+	strPath = WCharToMByte(exeFullPath);
 	int pos = strPath.find_last_of('\\', strPath.length());
 	string workpath = strPath.substr(0, pos);
 
