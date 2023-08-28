@@ -13,7 +13,7 @@ using namespace std;
 #define numVBOs 4
 
 //相机位置
-glm::vec3 cameraPos = glm::vec3(3.0f, 6.0f, 17.0f);
+glm::vec3 cameraPos = glm::vec3(0.0f, 6.0f, 0.0f);
 //相机进退方向
 glm::vec3 cameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
 //相机升降方向
@@ -470,7 +470,7 @@ void display(GLFWwindow* window, double currentTime)
 	//将反射场景渲染给反射缓冲区（如果相机在水面之上）
 	if (cameraPos.y > surfacePlaneHeight)
 	{
-		vMat = glm::translate(glm::mat4(1.0f), glm::vec3(0, -(surfacePlaneHeight - cameraPos.y), 0))
+		vMat = glm::translate(glm::mat4(1.0f), glm::vec3(-cameraPos.x, -(surfacePlaneHeight - cameraPos.y), -cameraPos.z))
 			* glm::rotate(glm::mat4(1.0f), toRadians(-cameraPitch), glm::vec3(1.0f, 0.0f, 0.0f));
 
 		glBindFramebuffer(GL_FRAMEBUFFER, reflectFrameBuffer);
@@ -485,7 +485,7 @@ void display(GLFWwindow* window, double currentTime)
 	}
 
 	//将折射场景渲染给折射缓冲区
-	vMat = glm::translate(glm::mat4(1.0f), glm::vec3(0, surfacePlaneHeight - cameraPos.y, 0))
+	vMat = glm::translate(glm::mat4(1.0f), glm::vec3(-cameraPos.x, surfacePlaneHeight - cameraPos.y, -cameraPos.z))
 		* glm::rotate(glm::mat4(1.0f), toRadians(cameraPitch), glm::vec3(1.0f, 0.0f, 0.0f));
 
 	glBindFramebuffer(GL_FRAMEBUFFER, refractFrameBuffer);
