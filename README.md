@@ -5,3 +5,8 @@
 3. 对Renderbuffer的理解
 
 ## SkeletalAnimation(骨骼动画)
+
+## SimulateWaterAndFog(流水效果)
+1. 包含反射与折射现象
+2. 对雾效果的实现
+3. 增加对噪声纹理的实现

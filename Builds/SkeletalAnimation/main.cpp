@@ -58,6 +58,8 @@ void init(GLFWwindow* window)
 
 	GetModuleFileName(NULL, exeFullPath, MAX_PATH);
 	strPath = WCharToMByte(exeFullPath);
+	delete[]exeFullPath;
+	exeFullPath = NULL;
 	int pos = strPath.find_last_of('\\', strPath.length());
 	string workpath = strPath.substr(0, pos);
 

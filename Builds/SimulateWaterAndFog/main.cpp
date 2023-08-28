@@ -23,7 +23,7 @@ glm::vec3 cameraAround = glm::vec3(1.0f, 0.0f, 0.0f);
 
 float toRadians(float degrees) { return (degrees * 2.0f * 3.14159f) / 360.0f; }
 
-float cameraHeight = -2.0f, cameraPitch = 15.0f;
+float cameraPitch = 15.0f;
 float surfacePlaneHeight = 0.0f;
 float floorPlaneHeight = -10.0f;
 GLuint renderingProgramSURFACE, renderingProgramFLOOR, SkyProgram;
@@ -55,11 +55,13 @@ float matDif[4] = { 0.8f, 0.9f, 1.0f, 1.0f };
 float matSpe[4] = { 1.0f, 1.0f, 1.0f, 1.0f };
 float matShi = 100.0f;
 
-//折射
+//折射纹理
 GLuint refractTextureId;
+//折射缓冲区
 GLuint refractFrameBuffer;
-//反射
+//反射纹理
 GLuint reflectTextureId;
+//反射缓冲区
 GLuint reflectFrameBuffer;
 //天空纹理
 GLuint skyTexture;
@@ -223,8 +225,8 @@ void installLights(glm::mat4 vMatrix, GLuint renderingProgram) {
 	glProgramUniform4fv(renderingProgram, mspecLoc, 1, matSpe);
 	glProgramUniform1f(renderingProgram, mshiLoc, matShi);
 	
+	delete []lightPos;
 	lightPos = NULL;
-	delete lightPos;
 }
 
 void setupVertices(void) {
@@ -269,7 +271,8 @@ void setupVertices(void) {
 	glBufferData(GL_ARRAY_BUFFER, sizeof(PLANE_NORMALS), PLANE_NORMALS, GL_STATIC_DRAW);
 }
 
-void createReflectRefractBuffers(GLFWwindow* window) {
+void createReflectRefractBuffers(GLFWwindow* window) 
+{
 	GLuint bufferId[1];
 	glGenBuffers(1, bufferId);
 	glfwGetFramebufferSize(window, &width, &height);
@@ -278,6 +281,7 @@ void createReflectRefractBuffers(GLFWwindow* window) {
 	glGenFramebuffers(1, bufferId);
 	reflectFrameBuffer = bufferId[0];
 	glBindFramebuffer(GL_FRAMEBUFFER, reflectFrameBuffer);
+	//纹理缓冲区
 	glGenTextures(1, bufferId);
 	reflectTextureId = bufferId[0];
 	glBindTexture(GL_TEXTURE_2D, reflectTextureId);
@@ -286,6 +290,7 @@ void createReflectRefractBuffers(GLFWwindow* window) {
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, reflectTextureId, 0);
 	glDrawBuffer(GL_COLOR_ATTACHMENT0);
+	//深度缓冲区
 	glGenTextures(1, bufferId);
 	glBindTexture(GL_TEXTURE_2D, bufferId[0]);
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT24, width, height, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
@@ -297,6 +302,7 @@ void createReflectRefractBuffers(GLFWwindow* window) {
 	glGenFramebuffers(1, bufferId);
 	refractFrameBuffer = bufferId[0];
 	glBindFramebuffer(GL_FRAMEBUFFER, refractFrameBuffer);
+	//纹理缓冲区
 	glGenTextures(1, bufferId);
 	refractTextureId = bufferId[0];
 	glBindTexture(GL_TEXTURE_2D, refractTextureId);
@@ -305,6 +311,7 @@ void createReflectRefractBuffers(GLFWwindow* window) {
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, refractTextureId, 0);
 	glDrawBuffer(GL_COLOR_ATTACHMENT0);
+	//深度缓冲区
 	glGenTextures(1, bufferId);
 	glBindTexture(GL_TEXTURE_2D, bufferId[0]);
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT24, width, height, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
@@ -313,13 +320,15 @@ void createReflectRefractBuffers(GLFWwindow* window) {
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, bufferId[0], 0);
 }
 
-void init(GLFWwindow* window) {
-
+void init(GLFWwindow* window) 
+{
 	LPWSTR exeFullPath = new WCHAR[MAX_PATH];
 	string strPath = "";
 
 	GetModuleFileName(NULL, exeFullPath, MAX_PATH);
 	strPath = WCharToMByte(exeFullPath);
+	delete []exeFullPath;
+	exeFullPath = NULL;
 	int pos = strPath.find_last_of('\\', strPath.length());
 	string workpath = strPath.substr(0, pos);
 
@@ -327,20 +336,24 @@ void init(GLFWwindow* window) {
 	renderingProgramFLOOR = Utils::createShaderProgram(workpath + "\\shader\\vFLOOR.glsl", workpath + "\\shader\\fFLOOR.glsl");
 	
 	SkyProgram = Utils::createShaderProgram(workpath + "\\shader\\vWaterandSky.glsl", workpath + "\\shader\\fWaterandSky.glsl");
-
-	setupVertices();
-
+	
 	skyboxTexture = Utils::loadCubeMap(workpath + "\\..\\Resources\\skybox\\");
 	glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
 
+	setupVertices();
 	createReflectRefractBuffers(window);
 
 	generateNoise();
 	noiseTexture = buildNoiseTexture();
 	prevTime = glfwGetTime();
-}
 
-void prepForSkyBoxRender() {
+	glfwGetFramebufferSize(window, &width, &height);
+	aspect = (float)width / (float)height;
+	pMat = glm::perspective(toRadians(60.0f), aspect, 0.1f, 1000.0f);
+}
+//绘制天空盒
+void prepForSkyBoxRender() 
+{
 	glUseProgram(SkyProgram);
 
 	vLoc = glGetUniformLocation(SkyProgram, "v_matrix");
@@ -350,7 +363,7 @@ void prepForSkyBoxRender() {
 	glUniformMatrix4fv(vLoc, 1, GL_FALSE, glm::value_ptr(vMat));
 	glUniformMatrix4fv(projLoc, 1, GL_FALSE, glm::value_ptr(pMat));
 	
-	if (cameraHeight >= surfacePlaneHeight)
+	if (cameraPos.y >= surfacePlaneHeight)
 		glUniform1i(aboveLoc, 1);
 	else
 		glUniform1i(aboveLoc, 0);
@@ -362,8 +375,9 @@ void prepForSkyBoxRender() {
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_CUBE_MAP, skyboxTexture);
 }
-
-void prepForTopSurfaceRender() {
+//绘制水顶面
+void prepForTopSurfaceRender() 
+{
 	glUseProgram(renderingProgramSURFACE);
 
 	mvLoc = glGetUniformLocation(renderingProgramSURFACE, "mv_matrix");
@@ -381,7 +395,7 @@ void prepForTopSurfaceRender() {
 	glUniformMatrix4fv(projLoc, 1, GL_FALSE, glm::value_ptr(pMat));
 	glUniformMatrix4fv(nLoc, 1, GL_FALSE, glm::value_ptr(invTrMat));
 
-	if (cameraHeight >= surfacePlaneHeight)
+	if (cameraPos.y >= surfacePlaneHeight)
 		glUniform1i(aboveLoc, 1);
 	else
 		glUniform1i(aboveLoc, 0);
@@ -406,8 +420,9 @@ void prepForTopSurfaceRender() {
 	glActiveTexture(GL_TEXTURE2);
 	glBindTexture(GL_TEXTURE_3D, noiseTexture);
 }
-
-void prepForFloorRender() {
+//绘制水底面
+void prepForFloorRender() 
+{
 	glUseProgram(renderingProgramFLOOR);
 
 	mvLoc = glGetUniformLocation(renderingProgramFLOOR, "mv_matrix");
@@ -425,7 +440,7 @@ void prepForFloorRender() {
 	glUniformMatrix4fv(projLoc, 1, GL_FALSE, glm::value_ptr(pMat));
 	glUniformMatrix4fv(nLoc, 1, GL_FALSE, glm::value_ptr(invTrMat));
 
-	if (cameraHeight >= surfacePlaneHeight)
+	if (cameraPos.y >= surfacePlaneHeight)
 		glUniform1i(aboveLoc, 1);
 	else
 		glUniform1i(aboveLoc, 0);
@@ -447,18 +462,15 @@ void prepForFloorRender() {
 	glBindTexture(GL_TEXTURE_3D, noiseTexture);
 }
 
-void display(GLFWwindow* window, double currentTime) {
-	glfwGetFramebufferSize(window, &width, &height);
-	aspect = (float)width / (float)height;
-	pMat = glm::perspective(toRadians(60.0f), aspect, 0.1f, 1000.0f);
-
+void display(GLFWwindow* window, double currentTime) 
+{
 	depthLookup += (currentTime - prevTime) * .05f;
 	prevTime = currentTime;
 
 	//将反射场景渲染给反射缓冲区（如果相机在水面之上）
-	if (cameraHeight > surfacePlaneHeight) 
+	if (cameraPos.y > surfacePlaneHeight)
 	{
-		vMat = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, -(surfacePlaneHeight - cameraHeight), 0.0f))
+		vMat = glm::translate(glm::mat4(1.0f), glm::vec3(0, -(surfacePlaneHeight - cameraPos.y), 0))
 			* glm::rotate(glm::mat4(1.0f), toRadians(-cameraPitch), glm::vec3(1.0f, 0.0f, 0.0f));
 
 		glBindFramebuffer(GL_FRAMEBUFFER, reflectFrameBuffer);
@@ -473,17 +485,14 @@ void display(GLFWwindow* window, double currentTime) {
 	}
 
 	//将折射场景渲染给折射缓冲区
-
-	vMat = glm::translate(glm::mat4(1.0f), -cameraPos);
-	//cameraHeight = cameraPos.y;
-	vMat = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, -(-(surfacePlaneHeight - cameraHeight)), 0.0f))
+	vMat = glm::translate(glm::mat4(1.0f), glm::vec3(0, surfacePlaneHeight - cameraPos.y, 0))
 		* glm::rotate(glm::mat4(1.0f), toRadians(cameraPitch), glm::vec3(1.0f, 0.0f, 0.0f));
 
 	glBindFramebuffer(GL_FRAMEBUFFER, refractFrameBuffer);
 	glClear(GL_DEPTH_BUFFER_BIT);
 	glClear(GL_COLOR_BUFFER_BIT);
 
-	if (cameraHeight >= surfacePlaneHeight) {
+	if (cameraPos.y >= surfacePlaneHeight) {
 		prepForFloorRender();
 		glEnable(GL_DEPTH_TEST);
 		glDepthFunc(GL_LEQUAL);
@@ -498,7 +507,6 @@ void display(GLFWwindow* window, double currentTime) {
 		glEnable(GL_DEPTH_TEST);
 	}
 	//渲染整个场景
-
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	glClear(GL_DEPTH_BUFFER_BIT);
 	glClear(GL_COLOR_BUFFER_BIT);
@@ -513,35 +521,33 @@ void display(GLFWwindow* window, double currentTime) {
 	glDrawArrays(GL_TRIANGLES, 0, 36);
 	glEnable(GL_DEPTH_TEST);
 
-	//绘制水面
 	prepForTopSurfaceRender();
-
 	glEnable(GL_DEPTH_TEST);
 	glDepthFunc(GL_LEQUAL);
-	if (cameraHeight >= surfacePlaneHeight)
+	if (cameraPos.y >= surfacePlaneHeight)
 		glFrontFace(GL_CCW);
 	else
 		glFrontFace(GL_CW);
 	glDrawArrays(GL_TRIANGLES, 0, 6);
 
-	//绘制水底
+	
 	prepForFloorRender();
-
 	glEnable(GL_DEPTH_TEST);
 	glDepthFunc(GL_LEQUAL);
 	glFrontFace(GL_CCW);
 	glDrawArrays(GL_TRIANGLES, 0, 6);
 }
 
-void window_size_callback(GLFWwindow* win, int newWidth, int newHeight) {
+void window_size_callback(GLFWwindow* win, int newWidth, int newHeight) 
+{
 	aspect = (float)newWidth / (float)newHeight;
 	glViewport(0, 0, newWidth, newHeight);
-	pMat = glm::perspective(1.0472f, aspect, 0.1f, 1000.0f);
+	pMat = glm::perspective(toRadians(60.0f), aspect, 0.1f, 1000.0f);
 }
 
 void processInput(GLFWwindow *window)
 {
-	float cameraSpeed = 0.05f;
+	float cameraSpeed = 0.01f;
 	if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
 		glfwSetWindowShouldClose(window, true);
 	else if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
@@ -558,7 +564,8 @@ void processInput(GLFWwindow *window)
 		cameraPos -= glm::normalize(glm::cross(cameraFront, cameraAround)) * cameraSpeed;
 }
 
-int main(void) {
+int main(void) 
+{
 	if (!glfwInit()) { exit(EXIT_FAILURE); }
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
