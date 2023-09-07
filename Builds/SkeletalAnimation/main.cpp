@@ -63,7 +63,7 @@ void init(GLFWwindow* window)
 	int pos = strPath.find_last_of('\\', strPath.length());
 	string workpath = strPath.substr(0, pos);
 
-	renderingProgram = Utils::createShaderProgram(workpath + "\\shader\\vanim_model.glsl", workpath + "\\shader\\fanim_model.glsl");
+	renderingProgram = Utils::createShaderProgram(workpath + "\\shader\\anim_model.vs", workpath + "\\shader\\anim_model.fs");
 
 	glfwGetFramebufferSize(window, &width, &height);
 	float aspect = (float)width / (float)height;

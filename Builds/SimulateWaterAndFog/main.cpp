@@ -332,10 +332,10 @@ void init(GLFWwindow* window)
 	int pos = strPath.find_last_of('\\', strPath.length());
 	string workpath = strPath.substr(0, pos);
 
-	renderingProgramSURFACE = Utils::createShaderProgram(workpath + "\\shader\\vSURFACE.glsl", workpath + "\\shader\\fSURFACE.glsl");
-	renderingProgramFLOOR = Utils::createShaderProgram(workpath + "\\shader\\vFLOOR.glsl", workpath + "\\shader\\fFLOOR.glsl");
+	renderingProgramSURFACE = Utils::createShaderProgram(workpath + "\\shader\\SURFACE.vs", workpath + "\\shader\\SURFACE.fs");
+	renderingProgramFLOOR = Utils::createShaderProgram(workpath + "\\shader\\FLOOR.vs", workpath + "\\shader\\FLOOR.fs");
 	
-	SkyProgram = Utils::createShaderProgram(workpath + "\\shader\\vWaterandSky.glsl", workpath + "\\shader\\fWaterandSky.glsl");
+	SkyProgram = Utils::createShaderProgram(workpath + "\\shader\\WaterandSky.vs", workpath + "\\shader\\WaterandSky.fs");
 	
 	skyboxTexture = Utils::loadCubeMap(workpath + "\\..\\Resources\\skybox\\");
 	glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
@@ -501,7 +501,7 @@ void display(GLFWwindow* window, double currentTime)
 	else {
 		prepForSkyBoxRender();
 		glEnable(GL_CULL_FACE);
-		glFrontFace(GL_CCW);	// cube is CW, but we are viewing the inside
+		glFrontFace(GL_CCW);
 		glDisable(GL_DEPTH_TEST);
 		glDrawArrays(GL_TRIANGLES, 0, 36);
 		glEnable(GL_DEPTH_TEST);

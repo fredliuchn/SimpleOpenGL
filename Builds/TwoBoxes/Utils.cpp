@@ -6,7 +6,8 @@
 
 using namespace std;
 
-string Utils::readShaderFile(string filePath) {
+string Utils::readShaderFile(const string& filePath) 
+{
 	string content;
 	ifstream fileStream(filePath, ios::in);
 	if (!fileStream.is_open())
@@ -14,7 +15,8 @@ string Utils::readShaderFile(string filePath) {
 		return "";
 	}
 	string line = "";
-	while (!fileStream.eof()) {
+	while (!fileStream.eof()) 
+	{
 		getline(fileStream, line);
 		content.append(line + "\n");
 	}
@@ -22,10 +24,12 @@ string Utils::readShaderFile(string filePath) {
 	return content;
 }
 
-bool Utils::checkOpenGLError() {
+bool Utils::checkOpenGLError() 
+{
 	bool foundError = false;
 	int glErr = glGetError();
-	while (glErr != GL_NO_ERROR) {
+	while (glErr != GL_NO_ERROR) 
+	{
 		cout << "glError: " << glErr << endl;
 		foundError = true;
 		glErr = glGetError();
@@ -33,12 +37,14 @@ bool Utils::checkOpenGLError() {
 	return foundError;
 }
 
-void Utils::printShaderLog(GLuint shader) {
+void Utils::printShaderLog(GLuint shader) 
+{
 	int len = 0;
 	int chWrittn = 0;
 	char *log;
 	glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &len);
-	if (len > 0) {
+	if (len > 0) 
+	{
 		log = (char *)malloc(len);
 		glGetShaderInfoLog(shader, len, &chWrittn, log);
 		cout << "Shader Info Log: " << log << endl;
@@ -46,10 +52,10 @@ void Utils::printShaderLog(GLuint shader) {
 	}
 }
 
-GLuint Utils::prepareShader(int shaderTYPE,string shaderPath)
+GLuint Utils::prepareShader(int shaderTYPE, const string& shaderPath)
 {
 	GLint shaderCompiled;
-	string shaderStr = readShaderFile(shaderPath);
+	const string& shaderStr = readShaderFile(shaderPath);
 	const char *shaderSrc = shaderStr.c_str();
 	GLuint shaderRef = glCreateShader(shaderTYPE);
 	glShaderSource(shaderRef, 1, &shaderSrc, NULL);
@@ -69,12 +75,14 @@ GLuint Utils::prepareShader(int shaderTYPE,string shaderPath)
 	return shaderRef;
 }
 
-void Utils::printProgramLog(int prog) {
+void Utils::printProgramLog(GLuint prog)
+{
 	int len = 0;
 	int chWrittn = 0;
 	char *log;
 	glGetProgramiv(prog, GL_INFO_LOG_LENGTH, &len);
-	if (len > 0) {
+	if (len > 0) 
+	{
 		log = (char *)malloc(len);
 		glGetProgramInfoLog(prog, len, &chWrittn, log);
 		cout << "Program Info Log: " << log << endl;
@@ -82,7 +90,7 @@ void Utils::printProgramLog(int prog) {
 	}
 }
 
-int Utils::finalizeShaderProgram(GLuint sprogram)
+GLint Utils::finalizeShaderProgram(GLuint sprogram, GLuint vShader, GLuint fShader, GLuint gShader, GLuint tcShader, GLuint teShader)
 {
 	GLint linked;
 	glLinkProgram(sprogram);
@@ -93,20 +101,47 @@ int Utils::finalizeShaderProgram(GLuint sprogram)
 		cout << "linking failed" << endl;
 		printProgramLog(sprogram);
 	}
+	if (vShader)
+	{
+		glDetachShader(sprogram, vShader);
+		glDeleteShader(vShader);
+	}
+	if (fShader)
+	{
+		glDetachShader(sprogram, fShader);
+		glDeleteShader(fShader);
+	}
+	if (gShader)
+	{
+		glDetachShader(sprogram, gShader);
+		glDeleteShader(gShader);
+	}
+	if (tcShader)
+	{
+		glDetachShader(sprogram, tcShader);
+		glDeleteShader(tcShader);
+	}
+	if (teShader)
+	{
+		glDetachShader(sprogram, teShader);
+		glDeleteShader(teShader);
+	}
 	return sprogram;
 }
 
-GLuint Utils::createShaderProgram(string vp, string fp) {
+GLuint Utils::createShaderProgram(const string& vp, const string& fp) 
+{
 	GLuint vShader = prepareShader(GL_VERTEX_SHADER, vp);
 	GLuint fShader = prepareShader(GL_FRAGMENT_SHADER, fp);
 	GLuint vfprogram = glCreateProgram();
 	glAttachShader(vfprogram, vShader);
 	glAttachShader(vfprogram, fShader);
-	finalizeShaderProgram(vfprogram);
+	finalizeShaderProgram(vfprogram, vShader, fShader);
 	return vfprogram;
 }
 
-GLuint Utils::createShaderProgram(const char *vp, const char *gp, const char *fp) {
+GLuint Utils::createShaderProgram(const string& vp, const string& gp, const string& fp) 
+{
 	GLuint vShader = prepareShader(GL_VERTEX_SHADER, vp);
 	GLuint gShader = prepareShader(GL_GEOMETRY_SHADER, gp);
 	GLuint fShader = prepareShader(GL_FRAGMENT_SHADER, fp);
@@ -114,11 +149,12 @@ GLuint Utils::createShaderProgram(const char *vp, const char *gp, const char *fp
 	glAttachShader(vgfprogram, vShader);
 	glAttachShader(vgfprogram, gShader);
 	glAttachShader(vgfprogram, fShader);
-	finalizeShaderProgram(vgfprogram);
+	finalizeShaderProgram(vgfprogram, vShader, fShader, gShader);
 	return vgfprogram;
 }
 
-GLuint Utils::createShaderProgram(const char *vp, const char *tCS, const char* tES, const char *fp) {
+GLuint Utils::createShaderProgram(const string& vp, const string& tCS, const string& tES, const string& fp) 
+{
 	GLuint vShader = prepareShader(GL_VERTEX_SHADER, vp);
 	GLuint tcShader = prepareShader(GL_TESS_CONTROL_SHADER, tCS);
 	GLuint teShader = prepareShader(GL_TESS_EVALUATION_SHADER, tES);
@@ -128,11 +164,12 @@ GLuint Utils::createShaderProgram(const char *vp, const char *tCS, const char* t
 	glAttachShader(vtfprogram, tcShader);
 	glAttachShader(vtfprogram, teShader);
 	glAttachShader(vtfprogram, fShader);
-	finalizeShaderProgram(vtfprogram);
+	finalizeShaderProgram(vtfprogram, vShader, fShader, 0, tcShader, teShader);
 	return vtfprogram;
 }
 
-GLuint Utils::createShaderProgram(const char *vp, const char *tCS, const char* tES, char *gp, const char *fp) {
+GLuint Utils::createShaderProgram(const string& vp, const string& tCS, const string& tES, const string& gp, const string& fp) 
+{
 	GLuint vShader = prepareShader(GL_VERTEX_SHADER, vp);
 	GLuint tcShader = prepareShader(GL_TESS_CONTROL_SHADER, tCS);
 	GLuint teShader = prepareShader(GL_TESS_EVALUATION_SHADER, tES);
@@ -144,11 +181,12 @@ GLuint Utils::createShaderProgram(const char *vp, const char *tCS, const char* t
 	glAttachShader(vtgfprogram, teShader);
 	glAttachShader(vtgfprogram, gShader);
 	glAttachShader(vtgfprogram, fShader);
-	finalizeShaderProgram(vtgfprogram);
+	finalizeShaderProgram(vtgfprogram, vShader, fShader, gShader, tcShader, teShader);
 	return vtgfprogram;
 }
 
-GLuint Utils::loadCubeMap(const string mapDir) {
+GLuint Utils::loadCubeMap(const string& mapDir) 
+{
 	GLuint textureRef;
 	string xp = mapDir + "right.jpg";
 	string xn = mapDir + "left.jpg";
@@ -162,9 +200,9 @@ GLuint Utils::loadCubeMap(const string mapDir) {
 	return textureRef;
 }
 
-unsigned int loadCubeMap(vector<string> faces)
+GLuint Utils::loadCubeMap(const vector<string>& faces)
 {
-	unsigned int textureID;
+	GLuint textureID;
 	glGenTextures(1, &textureID);
 	glBindTexture(GL_TEXTURE_CUBE_MAP, textureID);
 
@@ -194,10 +232,10 @@ unsigned int loadCubeMap(vector<string> faces)
 	return textureID;
 }
 
-GLuint Utils::loadTexture(const char *texImagePath)
+GLuint Utils::loadTexture(const string& texImagePath)
 {
 	GLuint textureRef;
-	textureRef = SOIL_load_OGL_texture(texImagePath, SOIL_LOAD_AUTO, SOIL_CREATE_NEW_ID, SOIL_FLAG_INVERT_Y);
+	textureRef = SOIL_load_OGL_texture(texImagePath.c_str(), SOIL_LOAD_AUTO, SOIL_CREATE_NEW_ID, SOIL_FLAG_INVERT_Y);
 	if (textureRef == 0) cout << "didnt find texture file " << texImagePath << endl;
 	// ----- mipmap/anisotropic section
 	glBindTexture(GL_TEXTURE_2D, textureRef);
@@ -211,7 +249,48 @@ GLuint Utils::loadTexture(const char *texImagePath)
 	// ----- end of mipmap/anisotropic section
 	return textureRef;
 }
+GLuint Utils::loadTextureUseDSA(const string& texImagePath)
+{
+	int widthImg, heightImg, numColCh;
+	unsigned char* bytes = SOIL_load_image(texImagePath.c_str(), &widthImg, &heightImg, &numColCh, 0);
 
+	GLuint textureRef;
+	glCreateTextures(GL_TEXTURE_2D, 1, &textureRef);
+
+	glTextureParameteri(textureRef, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+	glTextureParameteri(textureRef, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTextureParameteri(textureRef, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	glTextureParameteri(textureRef, GL_TEXTURE_WRAP_T, GL_REPEAT);
+
+	glTextureStorage2D(textureRef, 1, GL_RGBA8, widthImg, heightImg);
+	glTextureSubImage2D(textureRef, 0, 0, 0, widthImg, heightImg, GL_RGBA, GL_UNSIGNED_BYTE, bytes);
+	glGenerateTextureMipmap(textureRef);
+
+	SOIL_free_image_data(bytes);
+	return textureRef;
+}
+GLuint Utils::loadTextureNoDSA(const string& texImagePath)
+{
+	int widthImg, heightImg, numColCh;
+	unsigned char* bytes = SOIL_load_image(texImagePath.c_str(), &widthImg, &heightImg, &numColCh, 0);
+
+	GLuint textureRef;
+	glGenTextures(1, &textureRef);
+	glActiveTexture(0);
+	glBindTexture(GL_TEXTURE_2D, textureRef);
+
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, widthImg, heightImg, 0, GL_RGBA, GL_UNSIGNED_BYTE, bytes);
+	glGenerateMipmap(GL_TEXTURE_2D);
+
+	SOIL_free_image_data(bytes);
+	glBindTexture(GL_TEXTURE_2D, 0);
+	return textureRef;
+}
 // GOLD material - ambient, diffuse, specular, and shininess
 float* Utils::goldAmbient() { static float a[4] = { 0.2473f, 0.1995f, 0.0745f, 1 }; return (float*)a; }
 float* Utils::goldDiffuse() { static float a[4] = { 0.7516f, 0.6065f, 0.2265f, 1 }; return (float*)a; }

@@ -454,11 +454,11 @@ void init(GLFWwindow* window) {
 	int pos = strPath.find_last_of('\\', strPath.length());
 	string workpath = strPath.substr(0, pos);
 
-	SkyProgram = Utils::createShaderProgram(workpath + "\\shader\\vSkyBox.glsl", workpath + "\\shader\\fSkyBox.glsl");
-	RedProgram = Utils::createShaderProgram(workpath + "\\shader\\vRedColor.glsl", workpath + "\\shader\\fRedColor.glsl");
+	SkyProgram = Utils::createShaderProgram(workpath + "\\shader\\SkyBox.vs", workpath + "\\shader\\SkyBox.fs");
+	RedProgram = Utils::createShaderProgram(workpath + "\\shader\\RedColor.vs", workpath + "\\shader\\RedColor.fs");
 
-	renderingProgram1 = Utils::createShaderProgram(workpath + "\\shader\\vshadow1.glsl", workpath + "\\shader\\fshadow1.glsl");
-	renderingProgram2 = Utils::createShaderProgram(workpath + "\\shader\\vshadow2.glsl", workpath + "\\shader\\fshadow2.glsl");
+	renderingProgram1 = Utils::createShaderProgram(workpath + "\\shader\\shadow1.vs", workpath + "\\shader\\shadow1.fs");
+	renderingProgram2 = Utils::createShaderProgram(workpath + "\\shader\\shadow2.vs", workpath + "\\shader\\shadow2.fs");
 
 	glfwGetFramebufferSize(window, &width, &height);
 	aspect = (float)width / (float)height;
