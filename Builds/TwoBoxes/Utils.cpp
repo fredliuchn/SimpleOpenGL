@@ -232,6 +232,54 @@ GLuint Utils::loadCubeMap(const vector<string>& faces)
 	return textureID;
 }
 
+void Utils::saveTextureToLocal(unsigned int textureID, int width, int height, const std::string& fileName)
+{
+	// 绑定纹理
+	glBindTexture(GL_TEXTURE_2D, textureID);
+
+	// 创建一个缓冲区来存储纹理像素数据
+	unsigned char* pixels = new unsigned char[width * height * 4];
+
+	// 将纹理像素数据复制到缓冲区
+	glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
+
+	// 保存像素数据为 PNG 文件
+	SOIL_save_image(fileName.c_str(), SOIL_SAVE_TYPE_PNG, width, height, 4, pixels);
+
+	// 释放缓冲区
+	delete[] pixels;
+
+	// 解绑纹理
+	glBindTexture(GL_TEXTURE_2D, 0);
+}
+
+void Utils::save_screenshot(unsigned int textureID, int width, int height, const std::string& fileName)
+{
+	// 创建一个缓冲区来存储纹理像素数据
+	unsigned char* pixels = new unsigned char[width * height * 3];
+
+	GLint pack_aligment;
+
+	glGetIntegerv(GL_PACK_ALIGNMENT, &pack_aligment);
+	if (1 != pack_aligment)
+	{
+		glPixelStorei(GL_PACK_ALIGNMENT, 1);
+	}
+
+	glReadPixels(0, 0, width, width, GL_RGB, GL_UNSIGNED_BYTE, pixels);
+
+	if (1 != pack_aligment)
+	{
+		glPixelStorei(GL_PACK_ALIGNMENT, 1);
+	}
+
+	// 保存像素数据为 PNG 文件
+	SOIL_save_image(fileName.c_str(), SOIL_SAVE_TYPE_PNG, width, height, 3, pixels);
+
+	// 释放缓冲区
+	delete[] pixels;
+}
+
 GLuint Utils::loadTexture(const string& texImagePath)
 {
 	GLuint textureRef;

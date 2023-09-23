@@ -8,11 +8,10 @@
 #include <windows.h>
 #include <iostream>
 
-#define  TEXATTCH
 using namespace std;
 
 #define numVAOs 1
-#define numVBOs 8
+#define numVBOs 10
 
 //相机位置
 glm::vec3 cameraPos = glm::vec3(3.0f, 6.0f, 17.0f);
@@ -23,11 +22,17 @@ glm::vec3 cameraUp = glm::vec3(0.0f, 1.0f, 0.0f);
 //相机左右方向
 glm::vec3 cameraAround = glm::vec3(1.0f, 0.0f, 0.0f);
 
-GLuint renderingProgram1, renderingProgram2, RedProgram,SkyProgram;
+GLuint renderingProgram1, renderingProgram2, RedProgram, SkyProgram, OffScreenProgram;
+
+//抗锯齿
+GLuint MSAAFramebuffer, MSAAIntermediateFBO;
+//离屏渲染纹理
+GLuint OffScreenTexture;
+
 GLuint vao[numVAOs];
 GLuint vbo[numVBOs];
 
-GLuint brickTexture, skyboxTexture;
+GLuint skyboxTexture;
 GLuint mvLoc, projLoc, nLoc, sLoc, vLoc;
 int width, height;
 float aspect;
@@ -224,6 +229,17 @@ void setupVertices(void) {
 		1.0,0.0,0.0
 	};
 
+	float quadVertices[] = {
+	// positions   // texCoords
+	-1.0f,  1.0f,  0.0f, 1.0f,
+	-1.0f, -1.0f,  0.0f, 0.0f,
+	 1.0f, -1.0f,  1.0f, 0.0f,
+
+	-1.0f,  1.0f,  0.0f, 1.0f,
+	 1.0f, -1.0f,  1.0f, 0.0f,
+	 1.0f,  1.0f,  1.0f, 1.0f
+	};
+
 	float skyboxVertices[] = {
 		// positions          
 		-1.0f,  1.0f, -1.0f,
@@ -369,6 +385,9 @@ void setupVertices(void) {
 
 	glBindBuffer(GL_ARRAY_BUFFER, vbo[7]);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(skyboxVertices) * 4, skyboxVertices, GL_STATIC_DRAW);
+
+	glBindBuffer(GL_ARRAY_BUFFER, vbo[8]);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(quadVertices), quadVertices, GL_STATIC_DRAW);
 }
 
 void installLights(GLuint program, glm::mat4 vMatrix)
@@ -407,12 +426,49 @@ void installLights(GLuint program, glm::mat4 vMatrix)
 	glProgramUniform1f(program, mshiLoc, matShi);
 }
 
-void setupShadowBuffers(GLFWwindow* window) {
-	glfwGetFramebufferSize(window, &width, &height);
+void setupMSAA(GLFWwindow* window)
+{
+	glGenFramebuffers(1, &MSAAFramebuffer);
+	glBindFramebuffer(GL_FRAMEBUFFER, MSAAFramebuffer);
+	
+	GLuint textureColorBufferMultiSampled;
+	glGenTextures(1, &textureColorBufferMultiSampled);
+	glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, textureColorBufferMultiSampled);
+	glTexImage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, 4, GL_RGB, width, height, GL_TRUE);
+	glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, 0);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D_MULTISAMPLE, textureColorBufferMultiSampled, 0);
+	
+	GLuint MSAARenderbuffer;
+	glGenRenderbuffers(1, &MSAARenderbuffer);
+	glBindRenderbuffer(GL_RENDERBUFFER, MSAARenderbuffer);
+	glRenderbufferStorageMultisample(GL_RENDERBUFFER, 4, GL_DEPTH24_STENCIL8, width, height);
+	glBindRenderbuffer(GL_RENDERBUFFER, 0);
+	glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, MSAARenderbuffer);
 
+	if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+		cout << "ERROR::FRAMEBUFFER:: Framebuffer is not complete!" << endl;
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+	glGenFramebuffers(1, &MSAAIntermediateFBO);
+	glBindFramebuffer(GL_FRAMEBUFFER, MSAAIntermediateFBO);
+
+	glGenTextures(1, &OffScreenTexture);
+	glBindTexture(GL_TEXTURE_2D, OffScreenTexture);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, OffScreenTexture, 0);	// we only need a color buffer
+
+	if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+		cout << "ERROR::FRAMEBUFFER:: Intermediate framebuffer is not complete!" << endl;
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+}
+
+void setupShadowBuffers(GLFWwindow* window) 
+{
 	glGenFramebuffers(1, &shadowFrameBuffer);
 	glBindFramebuffer(GL_FRAMEBUFFER, shadowFrameBuffer);
-#ifdef TEXATTCH
+	
 	glGenTextures(1, &shadowTex);
 	glBindTexture(GL_TEXTURE_2D, shadowTex);
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT32, width, height, 0, GL_DEPTH_COMPONENT, GL_FLOAT, 0);
@@ -424,19 +480,6 @@ void setupShadowBuffers(GLFWwindow* window) {
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
 	glFramebufferTexture(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, shadowTex, 0);
-#else
-	glGenTextures(1, &shadowTex);
-	glBindTexture(GL_TEXTURE_2D, shadowTex);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, shadowTex, 0);
-
-	glGenRenderbuffers(1, &shadowRenderbuffer);
-	glBindRenderbuffer(GL_RENDERBUFFER, shadowRenderbuffer);
-	glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT24, width, height);
-	glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, shadowRenderbuffer);
-#endif // TEXATTCH
 	if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
 		cout << "ERROR::FRAMEBUFFER:: Framebuffer is not complete!" << endl;
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -460,6 +503,8 @@ void init(GLFWwindow* window) {
 	renderingProgram1 = Utils::createShaderProgram(workpath + "\\shader\\shadow1.vs", workpath + "\\shader\\shadow1.fs");
 	renderingProgram2 = Utils::createShaderProgram(workpath + "\\shader\\shadow2.vs", workpath + "\\shader\\shadow2.fs");
 
+	OffScreenProgram = Utils::createShaderProgram(workpath + "\\shader\\offscreen.vs", workpath + "\\shader\\offscreen.fs");
+
 	glfwGetFramebufferSize(window, &width, &height);
 	aspect = (float)width / (float)height;
 	pMat = glm::perspective(1.0472f, aspect, 0.1f, 1000.0f);
@@ -468,6 +513,7 @@ void init(GLFWwindow* window) {
 
 	setupVertices();
 	setupShadowBuffers(window);
+	setupMSAA(window);
 
 	b = glm::mat4(
 		0.5f, 0.0f, 0.0f, 0.0f,
@@ -599,7 +645,7 @@ void passtwo()
 	glEnableVertexAttribArray(0);
 	glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
 	glEnable(GL_DEPTH_TEST);
-	glStencilMask(0xFF);// 再次允许写入模板缓冲区 以便下次迭代时清除
+	//glStencilMask(0xFF);// 再次允许写入模板缓冲区 以便下次迭代时清除
 	//小的
 	glUseProgram(renderingProgram2);
 
@@ -654,12 +700,29 @@ void passtwo()
 
 void display(GLFWwindow* window, double currentTime)
 {
-
-	glClearColor(0.0, 0.0, 0.0, 1.0);
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);//GL_COLOR_BUFFER_BIT，GL_DEPTH_BUFFER_BIT和GL_STENCIL_BUFFER_BIT
-
+	glBindFramebuffer(GL_FRAMEBUFFER, shadowFrameBuffer);
 	vMat = glm::translate(glm::mat4(1.0f), -cameraPos);
 
+	//从光源视角初始化视觉矩阵以及透视矩阵，以便在第一轮使用
+	lightVmatrix = glm::lookAt(currentLightPos, origin, up);
+	lightPmatrix = glm::perspective(1.0472f, aspect, 0.1f, 1000.0f);
+	//使用自定义帧缓冲区，将阴影纹理附着到其上
+	
+	glDrawBuffer(GL_NONE);
+	glEnable(GL_DEPTH_TEST);
+	glEnable(GL_STENCIL_TEST);
+	glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
+
+	glEnable(GL_POLYGON_OFFSET_FILL);
+	glPolygonOffset(2.0f, 4.0f);
+	passone();
+	glDisable(GL_POLYGON_OFFSET_FILL);
+
+	if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+		cout << "ERROR::FRAMEBUFFER:: Framebuffer is not complete!" << endl;
+	//使用显示缓冲区，并重新开始绘制
+	glBindFramebuffer(GL_FRAMEBUFFER, MSAAFramebuffer);
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	//显示天空盒
 	glUseProgram(SkyProgram);
 	vLoc = glGetUniformLocation(SkyProgram, "v_matrix");
@@ -685,32 +748,40 @@ void display(GLFWwindow* window, double currentTime)
 	glDepthFunc(GL_LESS);
 	//glEnable(GL_DEPTH_TEST);
 	//glDepthMask(GL_TRUE);
-
-	//从光源视角初始化视觉矩阵以及透视矩阵，以便在第一轮使用
-	lightVmatrix = glm::lookAt(currentLightPos, origin, up);
-	lightPmatrix = glm::perspective(1.0472f, aspect, 0.1f, 1000.0f);
-	//使用自定义帧缓冲区，将阴影纹理附着到其上
-	glBindFramebuffer(GL_FRAMEBUFFER, shadowFrameBuffer);
-	glDrawBuffer(GL_NONE);
-	glEnable(GL_DEPTH_TEST);
-	glEnable(GL_STENCIL_TEST);
-	glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
-
-	glEnable(GL_POLYGON_OFFSET_FILL);
-	glPolygonOffset(2.0f, 4.0f);
-	passone();
-	glDisable(GL_POLYGON_OFFSET_FILL);
-
-	if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
-		cout << "ERROR::FRAMEBUFFER:: Framebuffer is not complete!" << endl;
-	//使用显示缓冲区，并重新开始绘制
-	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, shadowTex);
 	//重新开启绘制颜色
-	glDrawBuffer(GL_FRONT);
-
+	glStencilMask(0xFF);
 	passtwo();
+
+ 
+	//将离屏渲染的帧保存到MSAAIntermediateFBO
+	glBindFramebuffer(GL_READ_FRAMEBUFFER, MSAAFramebuffer);
+	glBindFramebuffer(GL_DRAW_FRAMEBUFFER, MSAAIntermediateFBO);
+	glBlitFramebuffer(0, 0, width, height, 0, 0, width, height, GL_COLOR_BUFFER_BIT, GL_NEAREST);
+
+	//正常渲染
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+	glClear(GL_COLOR_BUFFER_BIT);
+	glDisable(GL_DEPTH_TEST);
+	
+	glUseProgram(OffScreenProgram);
+	glBindBuffer(GL_ARRAY_BUFFER, vbo[8]);
+
+	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)0);
+	glEnableVertexAttribArray(0);
+	
+	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)(2 * sizeof(float)));
+	glEnableVertexAttribArray(1);
+
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, OffScreenTexture);
+	glEnable(GL_CULL_FACE);
+	glFrontFace(GL_CCW);
+	glDrawBuffer(GL_FRONT);
+	glDrawArrays(GL_TRIANGLES, 0, 6);
+
 	Utils::checkOpenGLError();
 }
 
@@ -722,7 +793,7 @@ void window_size_callback(GLFWwindow* win, int newWidth, int newHeight) {
 
 void processInput(GLFWwindow *window)
 {
-	float cameraSpeed = 0.05f; // adjust accordingly
+	float cameraSpeed = 0.01f; // adjust accordingly
 	if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
 		glfwSetWindowShouldClose(window, true);
 	else if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
@@ -744,6 +815,28 @@ void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
 	cameraPos.z += yoffset;
 }
 
+void GLAPIENTRY
+MessageCallback(GLenum source,
+	GLenum type,
+	GLuint id,
+	GLenum severity,
+	GLsizei length,
+	const GLchar* message,
+	const void* userParam)
+{
+	(void)source;
+	(void)id;
+	(void)length;
+	(void)userParam;
+
+	fprintf(
+		stderr,
+		"GL CALLBACK: %s type = 0x%x, severity = 0x%x, message = %s\n",
+		(type == GL_DEBUG_TYPE_ERROR ? "** GL ERROR **" : ""),
+		type, severity, message
+	);
+}
+
 int main(void) {
 	if (!glfwInit()) { exit(EXIT_FAILURE); }
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
@@ -760,6 +853,9 @@ int main(void) {
 	int nrAttributes;
 	glGetIntegerv(GL_MAX_VERTEX_ATTRIBS, &nrAttributes);
 	std::cout << "Maximum nr of vertex attributes supported: " << nrAttributes << std::endl;
+
+	glEnable(GL_DEBUG_OUTPUT);
+	glDebugMessageCallback(MessageCallback, nullptr);
 
 	while (!glfwWindowShouldClose(window)) {
 		processInput(window);

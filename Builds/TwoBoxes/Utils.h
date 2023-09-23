@@ -27,6 +27,9 @@ public:
 	static GLuint loadCubeMap(const string& mapDir);
 	static GLuint loadCubeMap(const vector<string>& faces);
 
+	static void saveTextureToLocal(unsigned int textureID, int width, int height, const std::string& fileName);
+	static void save_screenshot(unsigned int textureID, int width, int height, const std::string& fileName);
+
 	static float* goldAmbient();
 	static float* goldDiffuse();
 	static float* goldSpecular();
