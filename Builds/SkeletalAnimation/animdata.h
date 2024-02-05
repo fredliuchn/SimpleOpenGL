@@ -4,10 +4,9 @@
 
 struct BoneInfo
 {
-	/*id is index in finalBoneMatrices*/
 	int id;
 
-	/*offset matrix transforms vertex from model space to bone space*/
+	//模型空间到骨骼空间的偏移量
 	glm::mat4 offset;
 
 };

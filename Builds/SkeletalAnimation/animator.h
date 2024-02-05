@@ -75,8 +75,7 @@ public:
 
 private:
 	std::vector<glm::mat4> m_FinalBoneMatrices;
-	Animation* m_CurrentAnimation;
-	float m_CurrentTime;
-	float m_DeltaTime;
-
+	Animation* m_CurrentAnimation = nullptr;
+	float m_CurrentTime = { 0.0 };
+	float m_DeltaTime = { 0.0 };
 };
