@@ -1,5 +1,5 @@
 #include "Utils.h"
-#include "soil2.h"
+#include "SOIL2/SOIL2.h"
 
 #include <iostream>
 #include <fstream>

@@ -1,7 +1,7 @@
 #include "Utils.h"
 
 #include <GL/glew.h>
-#include"soil2.h"
+#include"SOIL2/SOIL2.h"
 #include"GLFW/glfw3.h"
 
 #include <windows.h>

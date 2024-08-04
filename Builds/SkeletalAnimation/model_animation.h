@@ -8,7 +8,7 @@
 
 #include "mesh.h"
 #include "animation.h"
-#include "soil2.h"
+#include "SOIL2/SOIL2.h"
 
 #include <string>
 #include <fstream>
