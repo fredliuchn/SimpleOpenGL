@@ -8,7 +8,7 @@
   </PropertyGroup>
   <ItemDefinitionGroup>
     <ClCompile>
-      <AdditionalIncludeDirectories>$(SolutionDir)Dependency\Assimp\include;$(SolutionDir)Dependency\glew\include;$(SolutionDir)Dependency\GLFW\include;$(SolutionDir)Dependency\glm-1.0.1;$(SolutionDir)Dependency\SOIL2\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)Dependency\Assimp\include;$(SolutionDir)Dependency\glew\include;$(SolutionDir)Dependency\GLFW\include;$(SolutionDir)Dependency\glm\include;$(SolutionDir)Dependency\SOIL2\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>GLEW_STATIC;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <Link>
